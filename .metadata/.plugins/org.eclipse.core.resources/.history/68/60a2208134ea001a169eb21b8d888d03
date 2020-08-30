@@ -1,0 +1,419 @@
+package com.udemy.springboot.reactor.app;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+import com.udemy.springboot.reactor.app.models.Comentarios;
+import com.udemy.springboot.reactor.app.models.Usuario;
+import com.udemy.springboot.reactor.app.models.UsuarioComentarios;
+
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+@SpringBootApplication
+public class SpringBootReactorApplication implements CommandLineRunner {
+
+	private static final Logger log = LoggerFactory.getLogger(SpringBootReactorApplication.class);
+
+	public static void main(String[] args) {
+		SpringApplication.run(SpringBootReactorApplication.class, args);
+	}
+
+	@Override
+	public void run(String... args) throws Exception {
+
+//		crearObservable();
+//		observableManejoErrores();
+//		observConEventoOnComplete();
+//		obsOperadorMapSencillo();
+//		obsOperadorMapOtroObjeto();
+//		obsOperadorFilter();
+//		obsIterable();
+//		obsFlatMap();
+//		obsFluxUsuToFluxString();
+//		fluxToMono();
+//		UsuarioComentariosFlatMap();
+//		UsuarioComentariosZipWith();
+//		UsuarioComentariosZipWithForma2();
+//		zipWithRangos();
+//		ejemploInterval();
+//		ejemploDelayElements();
+//		intervaloInfinito();
+//		intervaloInfinitoConLimite();
+//		intervaloInfinitoConLimiteRetry();
+		intervaloInfinitoCreate();
+	}
+
+	public void crearObservable() throws Exception {
+
+//		Flux<String> nombres = Flux.just("Luisa", "Rodolfo", "Vicente", "Belinda")
+//				.doOnNext(elemento -> System.out.println(elemento));
+
+		// para los casos en los que haya más de una línea, se utilizan las llaves
+//		Flux<String> nombres = Flux.just("Luisa", "Rodolfo", "Vicente", "Belinda")
+//				.doOnNext(elemento -> {
+//					System.out.println(elemento);
+//				});
+
+		// en java 8, la expresión quedaría así
+		Flux<String> nombres = Flux.just("Luisa", "Rodolfo", "Vicente", "Belinda").doOnNext(System.out::println);
+
+//		nombres.subscribe(e -> log.info(e));
+		nombres.subscribe(log::info);
+	}
+
+	public void observableManejoErrores() throws Exception {
+
+		// manejo de errores
+		Flux<String> nombres = Flux.just("Luisa", "Rodolfo", "", "Vicente", "Belinda").doOnNext(elemento -> {
+			if (elemento.isEmpty()) {
+				throw new RuntimeException("Nombres no puede ser vacío");
+			}
+			System.out.println(elemento);
+
+		});
+
+		nombres.subscribe(e -> log.info(e), error -> log.error(error.getMessage()));
+	}
+
+	public void observConEventoOnComplete() throws Exception {
+		// evento onComplete
+		Flux<String> nombres = Flux.just("Luisa", "Rodolfo", "Serafín", "Vicente", "Belinda").doOnNext(elemento -> {
+			if (elemento.isEmpty()) {
+				throw new RuntimeException("Nombres no puede ser vacío");
+			}
+			System.out.println(elemento);
+
+		});
+
+		nombres.subscribe(e -> log.info(e), error -> log.error(error.getMessage()), new Runnable() {
+
+			@Override
+			public void run() {
+
+				log.info("Ha finalizado la ejecución del observable con éxito");
+
+			}
+		});
+	}
+
+	public void obsOperadorMapSencillo() throws Exception {
+
+		Flux<String> nombres = Flux.just("Luisa", "Rodolfo", "Serafín", "Vicente", "Belinda").doOnNext(elemento -> {
+			if (elemento.isEmpty()) {
+				throw new RuntimeException("Nombres no puede ser vacío");
+			}
+			System.out.println(elemento);
+
+		}).map(nombre -> {
+			return nombre.toUpperCase();
+		});
+
+		nombres.subscribe(e -> log.info(e), error -> log.error(error.getMessage()), new Runnable() {
+
+			@Override
+			public void run() {
+
+				log.info("Ha finalizado la ejecución del observable con éxito");
+
+			}
+		});
+	}
+
+	public void obsOperadorMapOtroObjeto() throws Exception {
+
+		Flux<Usuario> nombres = Flux.just("Luisa", "Rodolfo", "Serafín", "Vicente", "Belinda")
+				.map(nombre -> new Usuario(nombre.toUpperCase(), null)).doOnNext(usuario -> {
+					if (usuario == null) {
+						throw new RuntimeException("Nombres no puede ser vacío");
+					}
+					System.out.println(usuario.getNombre());
+
+				}).map(usuario -> {
+					String nombre = usuario.getNombre().toLowerCase();
+					usuario.setNombre(nombre);
+					return usuario;
+				});
+
+		nombres.subscribe(e -> log.info(e.toString()), error -> log.error(error.getMessage()), new Runnable() {
+
+			@Override
+			public void run() {
+
+				log.info("Ha finalizado la ejecución del observable con éxito");
+
+			}
+		});
+	}
+
+	public void obsOperadorFilter() throws Exception {
+
+		Flux<Usuario> nombres = Flux
+				.just("Luisa Cano", "Rodolfo Martín", "Luisa Velasco", "Serafín Nogales", "Vicente Huesca",
+						"Belinda Cáceres")
+				.map(nombre -> new Usuario(nombre.split(" ")[0].toUpperCase(), nombre.split(" ")[1].toUpperCase()))
+				.filter(usuario -> usuario.getNombre().equalsIgnoreCase("Luisa")).doOnNext(usuario -> {
+					if (usuario == null) {
+						throw new RuntimeException("Nombres no puede ser vacío");
+					}
+					System.out.println(usuario.getNombre().concat(" ").concat(usuario.getApellido()));
+
+				}).map(usuario -> {
+					String nombre = usuario.getNombre().toLowerCase();
+					usuario.setNombre(nombre);
+					return usuario;
+				});
+
+		nombres.subscribe(e -> log.info(e.toString()), error -> log.error(error.getMessage()), new Runnable() {
+
+			@Override
+			public void run() {
+
+				log.info("Ha finalizado la ejecución del observable con éxito");
+
+			}
+		});
+	}
+
+	public void obsIterable() throws Exception {
+		List<String> usuariosList = new ArrayList<>();
+		usuariosList.add("Luisa Cano");
+		usuariosList.add("Rodolfo Martín");
+		usuariosList.add("Luisa Velasco");
+		usuariosList.add("Serafín Nogales");
+		usuariosList.add("Vicente Huesca");
+		usuariosList.add("Belinda Cáceres");
+
+		Flux<String> nombres = Flux.fromIterable(usuariosList);
+
+		Flux<Usuario> usuarios = nombres
+				.map(nombre -> new Usuario(nombre.split(" ")[0].toUpperCase(), nombre.split(" ")[1].toUpperCase()))
+				.filter(usuario -> usuario.getNombre().equalsIgnoreCase("Luisa")).doOnNext(usuario -> {
+					if (usuario == null) {
+						throw new RuntimeException("Nombres no puede ser vacío");
+					}
+					System.out.println(usuario.getNombre().concat(" ").concat(usuario.getApellido()));
+
+				}).map(usuario -> {
+					String nombre = usuario.getNombre().toLowerCase();
+					usuario.setNombre(nombre);
+					return usuario;
+				});
+
+		usuarios.subscribe(e -> log.info(e.toString()), error -> log.error(error.getMessage()), new Runnable() {
+
+			@Override
+			public void run() {
+
+				log.info("Ha finalizado la ejecución del observable con éxito");
+
+			}
+		});
+	}
+
+	public void obsFlatMap() throws Exception {
+		List<String> usuariosList = new ArrayList<>();
+		usuariosList.add("Luisa Cano");
+		usuariosList.add("Rodolfo Martín");
+		usuariosList.add("Luisa Velasco");
+		usuariosList.add("Serafín Nogales");
+		usuariosList.add("Vicente Huesca");
+		usuariosList.add("Belinda Cáceres");
+
+		Flux.fromIterable(usuariosList)
+				.map(nombre -> new Usuario(nombre.split(" ")[0].toUpperCase(), nombre.split(" ")[1].toUpperCase()))
+				.flatMap(usuario -> {
+					if (usuario.getNombre().equalsIgnoreCase("Luisa")) {
+						return Mono.just(usuario);
+					} else {
+						return Mono.empty();
+					}
+				}).subscribe(u -> log.info(u.toString()));
+	}
+
+	public void obsFluxUsuToFluxString() throws Exception {
+		List<Usuario> usuariosList = new ArrayList<>();
+		usuariosList.add(new Usuario("Luisa", "Cano"));
+		usuariosList.add(new Usuario("Rodolfo", "Martín"));
+		usuariosList.add(new Usuario("Luisa", "Velasco"));
+		usuariosList.add(new Usuario("Serafín", "Nogales"));
+		usuariosList.add(new Usuario("Vicente", "Huesca"));
+		usuariosList.add(new Usuario("Belinda", "Cáceres"));
+
+		Flux.fromIterable(usuariosList).map(
+				usuario -> usuario.getNombre().toUpperCase().concat(" ").concat(usuario.getApellido().toUpperCase()))
+				.flatMap(nombre -> {
+					if (nombre.contains("Rodolfo".toUpperCase())) {
+						return Mono.just(nombre);
+					} else {
+						return Mono.empty();
+					}
+				}).subscribe(u -> log.info(u.toString()));
+	}
+
+	public void fluxToMono() throws Exception {
+		List<Usuario> usuariosList = new ArrayList<>();
+		usuariosList.add(new Usuario("Luisa", "Cano"));
+		usuariosList.add(new Usuario("Rodolfo", "Martín"));
+		usuariosList.add(new Usuario("Luisa", "Velasco"));
+		usuariosList.add(new Usuario("Serafín", "Nogales"));
+		usuariosList.add(new Usuario("Vicente", "Huesca"));
+		usuariosList.add(new Usuario("Belinda", "Cáceres"));
+
+		// en esta opción imprime la lista
+		Flux.fromIterable(usuariosList).collectList() // devuelve un solo objeto lista, que contiene a los usuarios
+				.subscribe(lista -> log.info(lista.toString()));
+
+		// en esta opción imprime la lista, recorriendo cada uno de sus elementos
+		Flux.fromIterable(usuariosList).collectList() // devuelve un solo objeto lista, que contiene a los usuarios
+				.subscribe(lista -> {
+					lista.forEach(item -> log.info(item.toString()));
+				});
+
+	}
+
+	public void UsuarioComentariosFlatMap() {
+
+		Mono<Usuario> usuarioMono = Mono.fromCallable(() -> new Usuario("Manuel", "Higuera"));
+
+		Mono<Comentarios> comentariosUsuarioMono = Mono.fromCallable(() -> {
+			Comentarios comentarios = new Comentarios();
+			comentarios.addComentario("Primer comentario que insertamos");
+			comentarios.addComentario("Segundo comentario que insertamos");
+			comentarios.addComentario("Tercer comentario que insertamos");
+			return comentarios;
+		});
+
+		usuarioMono.flatMap(u -> comentariosUsuarioMono.map(c -> new UsuarioComentarios(u, c)))
+				.subscribe(uc -> log.info(uc.toString()));
+	}
+
+	public void UsuarioComentariosZipWith() {
+
+		Mono<Usuario> usuarioMono = Mono.fromCallable(() -> new Usuario("Manuel", "Higuera"));
+
+		Mono<Comentarios> comentariosUsuarioMono = Mono.fromCallable(() -> {
+			Comentarios comentarios = new Comentarios();
+			comentarios.addComentario("Primer comentario que insertamos");
+			comentarios.addComentario("Segundo comentario que insertamos");
+			comentarios.addComentario("Tercer comentario que insertamos");
+			return comentarios;
+		});
+
+		usuarioMono.zipWith(comentariosUsuarioMono, (u, c) -> new UsuarioComentarios(u, c))
+				.subscribe(uc -> log.info(uc.toString()));
+	}
+
+	public void UsuarioComentariosZipWithForma2() {
+
+		Mono<Usuario> usuarioMono = Mono.fromCallable(() -> new Usuario("Manuel", "Higuera"));
+
+		Mono<Comentarios> comentariosUsuarioMono = Mono.fromCallable(() -> {
+			Comentarios comentarios = new Comentarios();
+			comentarios.addComentario("Primer comentario que insertamos");
+			comentarios.addComentario("Segundo comentario que insertamos");
+			comentarios.addComentario("Tercer comentario que insertamos");
+			return comentarios;
+		});
+
+		Mono<UsuarioComentarios> usuarioConComentarios = usuarioMono.zipWith(comentariosUsuarioMono).map(tuple -> {
+			Usuario u = tuple.getT1();
+			Comentarios c = tuple.getT2();
+			return new UsuarioComentarios(u, c);
+		});
+
+		usuarioConComentarios.subscribe(uc -> log.info(uc.toString()));
+	}
+
+	public void zipWithRangos() {
+
+		Flux.just(1, 2, 3, 4).map(i -> i * 2)
+				.zipWith(Flux.range(0, 4), (uno, dos) -> String.format("Primer Flux: %d, Segundo Flux: %d", uno, dos))
+				.subscribe(texto -> log.info(texto));
+	}
+
+	public void ejemploInterval() {
+
+		Flux<Integer> rangos = Flux.range(1, 12);
+		Flux<Long> retraso = Flux.interval(Duration.ofSeconds(1));
+
+		// esto se ejecuta, pero no lo pinta porque la orden termina antes de que
+		// termine de pintar todo, por el delay
+//		rangos.zipWith(retraso, (ran, ret) -> ran).doOnNext(i -> log.info(i.toString())).subscribe();
+		
+		//para que  lo pinte durante la ejecución, hay que bloquearlo
+		rangos.zipWith(retraso, (ran, ret) -> ran).doOnNext(i -> log.info(i.toString())).blockLast();
+	}
+
+	public void ejemploDelayElements() {
+
+		Flux<Integer> rangos = Flux.range(1, 12)
+				.delayElements(Duration.ofSeconds(1))
+				.doOnNext(i -> log.info(i.toString()));
+		
+		//esto no lo llega a imprimir
+//		rangos.subscribe();
+		
+		//bloqueamos y así vemos como lo pinta
+		rangos.blockLast();		
+	}
+	
+	public void intervaloInfinito() throws InterruptedException {
+		
+		CountDownLatch latch = new CountDownLatch(1);
+		
+		Flux.interval(Duration.ofSeconds(1))
+		.doOnTerminate(latch::countDown) //() -> latch.countDown()
+		.map(i -> "Hola "+i)
+		.doOnNext(log::info)
+		.subscribe();
+		
+		latch.await();
+	}
+	
+	public void intervaloInfinitoConLimite() throws InterruptedException {
+		
+		CountDownLatch latch = new CountDownLatch(1);
+		
+		Flux.interval(Duration.ofSeconds(1))
+		.doOnTerminate(latch::countDown) //() -> latch.countDown()
+		.flatMap(i -> {
+			if(i >= 5) {
+				return Flux.error(new InterruptedException("Solo llega hasta 5"));
+			}
+			return Flux.just(i);
+		})
+		.map(i -> "Hola "+i)
+		.subscribe(log::info, e -> log.error(e.getMessage()));
+		
+		latch.await();
+	}
+	public void intervaloInfinitoConLimiteRetry() throws InterruptedException {
+		
+		CountDownLatch latch = new CountDownLatch(1);
+		
+		Flux.interval(Duration.ofSeconds(1))
+		.doOnTerminate(latch::countDown) //() -> latch.countDown()
+		.flatMap(i -> {
+			if(i >= 5) {
+				return Flux.error(new InterruptedException("Solo llega hasta 5"));
+			}
+			return Flux.just(i);
+		})
+		.map(i -> "Hola "+i)
+		.retry(2) //intenta ejecutarlo 2 veces más si da error
+		.subscribe(log::info, e -> log.error(e.getMessage()));
+		
+		latch.await();
+	}
+	public void intervaloInfinitoCreate() {
+	}
+}

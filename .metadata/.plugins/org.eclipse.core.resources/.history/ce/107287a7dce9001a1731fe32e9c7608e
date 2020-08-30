@@ -1,0 +1,12 @@
+package com.udemy.springboot.reactor.app.models;
+
+import lombok.Data;
+
+@Data
+public class Usuario {
+	
+	private String nombre;
+	
+	private String apellido;
+
+}
